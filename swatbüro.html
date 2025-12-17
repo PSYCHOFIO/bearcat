@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SWAT Bureau</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/loaders/GLTFLoader.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #020617; margin: 0; overflow-x: hidden; }
+        .glass { background: rgba(15, 23, 42, .85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, .1); }
+        .hero { height: 420px; background: url("swatarkaplan.png") center/cover no-repeat; margin-top: 96px; }
+        #scene-wrap { position: relative; height: 420px; overflow: hidden; background: #020617; }
+        #policeLights { position: absolute; inset: -80%; pointer-events: none; opacity: 0; transition: opacity .6s ease; z-index: 5; }
+        .light-blue, .light-red { position: absolute; inset: 0; filter: blur(140px); transform: scale(1.3); }
+        .light-blue { background: radial-gradient(circle at left 40%, rgba(0, 130, 255, .95), rgba(0, 130, 255, .6) 30%, transparent 70%); animation: blueFlash 1s infinite; }
+        .light-red { background: radial-gradient(circle at right 60%, rgba(255, 30, 30, .95), rgba(255, 30, 30, .6) 30%, transparent 70%); animation: redFlash 1s infinite; }
+        @keyframes blueFlash { 0%, 45% { opacity: 1 } 50%, 100% { opacity: 0 } }
+        @keyframes redFlash { 0%, 45% { opacity: 0 } 50%, 100% { opacity: 1 } }
+        .swat-line { transition: all .7s ease; }
+    </style>
+</head>
+
+<body>
+
+<header class="fixed top-0 w-full h-[96px] glass z-50">
+    <div class="max-w-7xl mx-auto px-6 h-full flex items-center gap-4">
+        <img src="Swat-Logo.png" class="h-16 w-auto" alt="Logo">
+        <div>
+            <div class="text-white font-extrabold text-lg">LSPD S.W.A.T</div>
+            <div class="text-gray-400 text-xs">Elite Tactical Unit</div>
+        </div>
+    </div>
+</header>
+
+<section class="hero flex items-center justify-center">
+    <h1 class="text-5xl font-extrabold text-white">SWAT BÜROSU</h1>
+</section>
+
+<section id="scene-wrap">
+    <div id="policeLights">
+        <div class="light-blue"></div>
+        <div class="light-red"></div>
+    </div>
+    <canvas id="threeCanvas"></canvas>
+</section>
+
+<section id="swatText" class="max-w-5xl mx-auto px-6 py-24 opacity-0">
+    <h2 class="text-4xl font-extrabold text-white mb-8">LAPD SWAT</h2>
+    <p class="swat-line opacity-0 translate-y-6 text-gray-300 text-lg mb-4">Los Angeles Polis Departmanı bünyesinde</p>
+    <p class="swat-line opacity-0 translate-y-6 text-gray-300 text-lg mb-4"><span class="text-blue-400 font-bold">1967 yılında</span> kurulmuştur.</p>
+    <p class="swat-line opacity-0 translate-y-6 text-gray-300 text-lg">Yüksek riskli operasyonlarda görev alan elit birimdir.</p>
+</section>
+
+<script>
+    let scene, camera, renderer, car;
+    let started = false;
+
+    const canvas = document.getElementById("threeCanvas");
+    const lights = document.getElementById("policeLights");
+
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(45, window.innerWidth / 420, 0.1, 1000);
+    camera.position.set(0, 1.5, 12); 
+
+    renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setSize(window.innerWidth, 420);
+    renderer.setPixelRatio(window.devicePixelRatio);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 2.0));
+    const dir = new THREE.DirectionalLight(0xffffff, 1.5);
+    dir.position.set(5, 10, 5);
+    scene.add(dir);
+
+    const loader = new THREE.GLTFLoader();
+    
+    loader.load(
+        "bearcat.glb", 
+        (gltf) => {
+            car = gltf.scene;
+            car.scale.set(1.5, 1.5, 1.5);
+            // ARACI SOLDAN BAŞLAT (X: -18)
+            car.position.set(-18, 0, 0); 
+            // Aracın önü sağa baksın diye rotasyon (Gerekirse ayarla)
+            car.rotation.y = Math.PI / 2; 
+            scene.add(car);
+            console.log("Model başarıyla eklendi.");
+        },
+        undefined,
+        (error) => { console.error("Hata:", error); }
+    );
+
+    function animate() {
+        requestAnimationFrame(animate);
+        if (car && started) {
+            // ARACI SAĞA DOĞRU İLERLET
+            car.position.x += 0.12; 
+        }
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener("scroll", () => {
+        if (started) return;
+        const rect = document.getElementById("scene-wrap").getBoundingClientRect();
+        if (rect.top < window.innerHeight * 0.75) {
+            started = true;
+            lights.style.opacity = "1";
+            
+            // 4 saniye sonra her şeyi normale döndür ve yazıları getir
+            setTimeout(() => {
+                lights.style.opacity = "0";
+                document.getElementById("swatText").classList.remove("opacity-0");
+                document.querySelectorAll(".swat-line").forEach((l, i) => {
+                    setTimeout(() => l.classList.remove("opacity-0", "translate-y-6"), i * 400);
+                });
+            }, 4000);
+        }
+    });
+
+    window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / 420;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, 420);
+    });
+</script>
+
+</body>
+</html>
